@@ -10,7 +10,7 @@ evitando duplicar lógica de negócio em cada interface.
 from src.retrieval.vectorstore import load_vectorstore
 from src.retrieval.retriever import get_retriever
 from src.retrieval.llm import build_rag_chain
-
+from pathlib import Path
 
 class RAGApplication:
     """
@@ -31,31 +31,18 @@ class RAGApplication:
         print("RAG Application pronta.")
 
     def perguntar(self, pergunta: str) -> dict:
-        """
-        Responde a uma pergunta usando o pipeline RAG completo.
-
-        Args:
-            pergunta: a pergunta do usuário, em texto livre.
-
-        Returns:
-            Um dicionário com a resposta e os metadados das fontes
-            usadas (páginas), para permitir rastreabilidade na interface.
-        """
         resposta = self.chain.invoke(pergunta)
-
-        # Recupera os documentos-fonte separadamente, para expor
-        # as páginas usadas junto com a resposta (útil na API/UI)
         documentos_fonte = self.retriever.invoke(pergunta)
-        paginas = sorted(set(
-            doc.metadata.get("page") for doc in documentos_fonte
+        fontes = sorted(set(
+            (Path(doc.metadata.get("source", "desconhecido")).name, doc.metadata.get("page"))
+            for doc in documentos_fonte
         ))
 
         return {
             "pergunta": pergunta,
             "resposta": resposta,
-            "paginas_fonte": paginas,
+            "fontes": [{"arquivo": arquivo, "pagina": pagina} for arquivo, pagina in fontes],
         }
-
 
 # Bloco de teste manual
 if __name__ == "__main__":
@@ -65,4 +52,4 @@ if __name__ == "__main__":
 
     print(f"\nPergunta: {resultado['pergunta']}")
     print(f"Resposta: {resultado['resposta']}")
-    print(f"Páginas fonte: {resultado['paginas_fonte']}")
+    print(f"Fontes: {resultado['fontes']}")

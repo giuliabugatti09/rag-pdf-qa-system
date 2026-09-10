@@ -2,16 +2,15 @@
 API REST para o sistema RAG, construída com FastAPI.
 
 Expõe um endpoint /query que recebe uma pergunta e retorna a resposta
-gerada pelo pipeline RAG, junto com as páginas-fonte utilizadas.
+gerada pelo pipeline RAG, junto com as fontes (arquivo + página) usadas.
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
-from fastapi import UploadFile, File
-from src.api.upload import process_uploaded_pdf
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 
 from src.rag_application import RAGApplication
+from src.api.upload import process_uploaded_pdf
 
 
 # Estado global da aplicação — inicializado uma vez, no lifespan
@@ -28,7 +27,6 @@ async def lifespan(app: FastAPI):
     rag_app_state["rag"] = RAGApplication(k=4, use_mmr=False)
     print("API pronta para receber requisições.")
     yield
-    # Código de limpeza (se necessário) iria aqui, após o yield
     rag_app_state.clear()
 
 
@@ -50,11 +48,17 @@ class QueryRequest(BaseModel):
     )
 
 
+class SourceReference(BaseModel):
+    """Referência de uma fonte usada para gerar a resposta."""
+    arquivo: str
+    pagina: int
+
+
 class QueryResponse(BaseModel):
     """Schema de saída do endpoint /query."""
     question: str
     answer: str
-    source_pages: list[int]
+    sources: list[SourceReference]
 
 
 @app.get("/")
@@ -83,8 +87,10 @@ def query(request: QueryRequest):
     return QueryResponse(
         question=resultado["pergunta"],
         answer=resultado["resposta"],
-        source_pages=resultado["paginas_fonte"],
+        sources=resultado["fontes"],
     )
+
+
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
     """

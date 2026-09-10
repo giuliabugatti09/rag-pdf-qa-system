@@ -5,7 +5,7 @@ gerar respostas ancoradas no contexto recuperado (RAG prompt).
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
-
+from pathlib import Path
 
 RAG_PROMPT_TEMPLATE = """Você é um assistente especializado em responder perguntas com base em documentos técnicos e financeiros.
 
@@ -36,20 +36,15 @@ def build_rag_prompt() -> ChatPromptTemplate:
 def format_docs_for_context(docs: list[Document]) -> str:
     """
     Formata uma lista de Documents recuperados em uma única string
-    de contexto, incluindo o número da página de cada chunk para
-    permitir que a LLM cite a fonte corretamente.
-
-    Args:
-        docs: lista de Documents retornados pelo retriever.
-
-    Returns:
-        String formatada, pronta para ser inserida na variável
-        'context' do prompt.
+    de contexto, incluindo o arquivo de origem e o número da página
+    de cada chunk para permitir que a LLM cite a fonte corretamente
+    e sem ambiguidade entre documentos diferentes.
     """
     formatted_chunks = []
     for doc in docs:
+        source = Path(doc.metadata.get("source", "desconhecido")).name
         page = doc.metadata.get("page", "desconhecida")
-        formatted_chunks.append(f"[Página {page}]\n{doc.page_content}")
+        formatted_chunks.append(f"[Fonte: {source} | Página {page}]\n{doc.page_content}")
 
     return "\n\n---\n\n".join(formatted_chunks)
 
