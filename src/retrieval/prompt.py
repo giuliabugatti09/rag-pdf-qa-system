@@ -11,8 +11,7 @@ RAG_PROMPT_TEMPLATE = """Você é um assistente especializado em responder pergu
 
 Use EXCLUSIVAMENTE as informações do contexto abaixo para responder à pergunta. Não utilize conhecimento prévio ou externo ao contexto fornecido.
 
-Se a informação necessária não estiver presente no contexto, responda claramente: "Não encontrei essa informação nos documentos fornecidos." Não tente adivinhar ou complementar com suposições.
-
+Se a informação necessária não estiver presente no contexto, responda claramente: "Não encontrei essa informação nos documentos fornecidos." Não tente adivinhar ou complementar com suposições. Nesse caso, NÃO cite nenhuma página.
 Ao responder, cite a página de origem de cada informação relevante, no formato (página X).
 
 Contexto:

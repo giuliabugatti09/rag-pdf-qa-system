@@ -103,3 +103,15 @@ if __name__ == "__main__":
         print(f"Resultado {i} (página {doc.metadata.get('page')}):")
         print(doc.page_content[:300])
         print()
+
+def add_documents_to_vectorstore(vectorstore: Chroma, chunks: list[Document]) -> None:
+    """
+    Adiciona novos chunks a um vector store já existente, sem apagar
+    ou reprocessar o conteúdo já indexado.
+
+    Args:
+        vectorstore: instância do Chroma já carregada (ver load_vectorstore).
+        chunks: lista de novos Documents (chunks) a serem adicionados.
+    """
+    vectorstore.add_documents(chunks)
+    print(f"{len(chunks)} novos chunks adicionados ao vector store.")
