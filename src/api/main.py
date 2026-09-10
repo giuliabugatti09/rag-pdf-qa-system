@@ -46,7 +46,7 @@ class QueryRequest(BaseModel):
         description="A pergunta a ser respondida com base nos documentos indexados.",
         examples=["Qual foi o lucro líquido atribuível aos acionistas em 2023?"],
     )
-
+    language: str = Field(default="pt", description="Idioma da resposta: 'pt' ou 'en'.")
 
 class SourceReference(BaseModel):
     """Referência de uma fonte usada para gerar a resposta."""
@@ -69,17 +69,12 @@ def health_check():
 
 @app.post("/query", response_model=QueryResponse)
 def query(request: QueryRequest):
-    """
-    Recebe uma pergunta e retorna a resposta gerada pelo pipeline RAG.
-    """
     rag = rag_app_state.get("rag")
     if rag is None:
-        raise HTTPException(
-            status_code=503,
-            detail="RAG Application ainda não foi inicializada.",
-        )
+        raise HTTPException(status_code=503, detail="RAG Application ainda não foi inicializada.")
 
     try:
+        rag.chain = build_rag_chain(rag.retriever, lang=request.language)
         resultado = rag.perguntar(request.question)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar a pergunta: {str(e)}")
@@ -89,7 +84,6 @@ def query(request: QueryRequest):
         answer=resultado["resposta"],
         sources=resultado["fontes"],
     )
-
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -108,3 +102,14 @@ async def upload_pdf(file: UploadFile = File(...)):
         "message": "Documento processado e adicionado com sucesso.",
         **resultado,
     }
+from src.retrieval.vectorstore import get_vectorstore_stats
+
+@app.get("/stats")
+def stats():
+    """Retorna estatísticas da base de conhecimento atual."""
+    rag = rag_app_state.get("rag")
+    if rag is None:
+        raise HTTPException(status_code=503, detail="RAG Application ainda não foi inicializada.")
+
+    vectorstore = rag.retriever.vectorstore
+    return get_vectorstore_stats(vectorstore)

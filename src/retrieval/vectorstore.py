@@ -115,3 +115,23 @@ def add_documents_to_vectorstore(vectorstore: Chroma, chunks: list[Document]) ->
     """
     vectorstore.add_documents(chunks)
     print(f"{len(chunks)} novos chunks adicionados ao vector store.")
+def get_vectorstore_stats(vectorstore: Chroma) -> dict:
+    """
+    Retorna estatísticas básicas do vector store: total de chunks
+    e lista de documentos únicos indexados (pelo nome do arquivo).
+    """
+    collection = vectorstore._collection
+    total_chunks = collection.count()
+
+    # Recupera os metadados de todos os itens para contar documentos únicos
+    resultado = collection.get(include=["metadatas"])
+    arquivos = set()
+    for metadata in resultado.get("metadatas", []):
+        source = metadata.get("source", "")
+        arquivos.add(Path(source).name)
+
+    return {
+        "total_chunks": total_chunks,
+        "total_documentos": len(arquivos),
+        "documentos": sorted(arquivos),
+    }

@@ -10,34 +10,17 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from src.retrieval.prompt import build_rag_prompt, format_docs_for_context
 
-
-def build_prompt_chain(retriever: VectorStoreRetriever):
-    """
-    Monta a chain que vai da pergunta até o prompt final formatado,
-    pronta para ser conectada a uma LLM.
-
-    Args:
-        retriever: retriever configurado (ver src/retrieval/retriever.py).
-
-    Returns:
-        Uma Runnable do LangChain que recebe uma string (a pergunta)
-        e retorna o ChatPromptValue final, pronto para ser enviado
-        a uma LLM.
-    """
-    prompt_template: ChatPromptTemplate = build_rag_prompt()
-
+def build_prompt_chain(retriever: VectorStoreRetriever, lang: str = "pt"):
+    
+    prompt_template = build_rag_prompt(lang=lang)
     chain = (
         {
-            # 'context': a pergunta passa pelo retriever, depois é formatada
             "context": retriever | format_docs_for_context,
-            # 'question': a pergunta original passa direto, sem transformação
             "question": RunnablePassthrough(),
         }
         | prompt_template
     )
-
     return chain
-
 
 # Bloco de teste manual
 if __name__ == "__main__":

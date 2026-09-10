@@ -41,27 +41,25 @@ def get_llm(temperature: float = 0.1) -> ChatGroq:
     return llm
 
 
-def build_rag_chain(retriever: VectorStoreRetriever):
+def build_rag_chain(retriever: VectorStoreRetriever, lang: str = "pt"):
     """
     Monta a chain completa de RAG: pergunta -> contexto + prompt -> LLM -> resposta em texto.
 
     Args:
         retriever: retriever configurado (ver src/retrieval/retriever.py).
+        lang: idioma da resposta gerada ('pt' ou 'en').
 
     Returns:
         Uma Runnable que recebe uma pergunta (string) e retorna a
         resposta final da LLM já como string simples.
     """
-    prompt_chain = build_prompt_chain(retriever)
+    prompt_chain = build_prompt_chain(retriever, lang=lang)
     llm = get_llm()
 
-    # Encadeia: prompt já pronto -> LLM -> extrai só o texto da resposta
     full_chain = prompt_chain | llm | StrOutputParser()
 
     return full_chain
 
-
-# Bloco de teste manual: primeira pergunta de ponta a ponta, de verdade
 if __name__ == "__main__":
     from src.retrieval.vectorstore import load_vectorstore
     from src.retrieval.retriever import get_retriever

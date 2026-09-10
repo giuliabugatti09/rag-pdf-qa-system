@@ -21,13 +21,11 @@ class RAGApplication:
     subida da aplicação (não a cada pergunta).
     """
 
-    def __init__(self, k: int = 4, use_mmr: bool = False):
+    def __init__(self, k: int = 4, use_mmr: bool = False, lang: str = "pt"):
         print("Inicializando RAG Application...")
-
         vectorstore = load_vectorstore()
         self.retriever = get_retriever(vectorstore, k=k, use_mmr=use_mmr)
-        self.chain = build_rag_chain(self.retriever)
-
+        self.chain = build_rag_chain(self.retriever, lang=lang)
         print("RAG Application pronta.")
 
     def perguntar(self, pergunta: str) -> dict:

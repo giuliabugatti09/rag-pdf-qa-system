@@ -22,16 +22,38 @@ Pergunta: {question}
 Resposta:"""
 
 
-def build_rag_prompt() -> ChatPromptTemplate:
+from src.ui.i18n import PROMPT_INSTRUCTIONS
+
+
+def build_rag_prompt(lang: str = "pt") -> ChatPromptTemplate:
     """
-    Constrói o template de prompt para a chain de RAG.
+    Constrói o template de prompt para a chain de RAG, no idioma especificado.
+
+    Args:
+        lang: código do idioma ('pt' ou 'en'), controla tanto as
+            instruções do sistema quanto o idioma da resposta gerada.
 
     Returns:
-        ChatPromptTemplate pronto para ser usado com um LLM,
-        esperando as variáveis 'context' e 'question'.
+        ChatPromptTemplate pronto para uso, esperando 'context' e 'question'.
     """
-    return ChatPromptTemplate.from_template(RAG_PROMPT_TEMPLATE)
+    instructions = PROMPT_INSTRUCTIONS.get(lang, PROMPT_INSTRUCTIONS["pt"])
 
+    template = f"""{instructions['system_role']}
+
+    {instructions['restriction']}
+
+    {instructions['fallback']}
+
+    {instructions['citation']} {instructions['language_instruction']}
+
+    Contexto:
+    {{context}}
+
+    Pergunta: {{question}}
+
+    Resposta:"""
+
+    return ChatPromptTemplate.from_template(template)
 
 def format_docs_for_context(docs: list[Document]) -> str:
     """
