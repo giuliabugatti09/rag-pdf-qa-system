@@ -4,7 +4,7 @@ API REST para o sistema RAG, construída com FastAPI.
 Expõe um endpoint /query que recebe uma pergunta e retorna a resposta
 gerada pelo pipeline RAG, junto com as fontes (arquivo + página) usadas.
 """
-
+from src.retrieval.llm import build_rag_chain
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
