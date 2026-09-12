@@ -20,16 +20,28 @@ rag_app_state: dict = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Gerencia o ciclo de vida da aplicação: carrega o RAG uma única vez
-    quando o servidor sobe, e disponibiliza para todas as requisições.
+    Gerencia o ciclo de vida da aplicação: garante que o vector store
+    existe (construindo a partir dos PDFs se necessário) e carrega
+    o RAG uma única vez quando o servidor sobe.
     """
-    print("Carregando RAG Application (isso acontece uma única vez)...")
+    from pathlib import Path
+    from src.ingestion.loader import load_all_pdfs
+    from src.ingestion.chunker import split_documents
+    from src.retrieval.vectorstore import build_vectorstore, PERSIST_DIRECTORY
+
+    if not Path(PERSIST_DIRECTORY).exists():
+        print("Vector store não encontrado. Construindo a partir dos PDFs...")
+        pages = load_all_pdfs()
+        chunks = split_documents(pages)
+        build_vectorstore(chunks)
+        print("Vector store construído com sucesso.")
+
+    print("Carregando RAG Application...")
     rag_app_state["rag"] = RAGApplication(k=4, use_mmr=False)
     print("API pronta para receber requisições.")
     yield
     rag_app_state.clear()
-
-
+    
 app = FastAPI(
     title="RAG PDF Q&A API",
     description="API para busca semântica e Q&A sobre documentos PDF usando RAG.",
