@@ -8,7 +8,7 @@ Projeto desenvolvido como exercício prático de MLOps e engenharia de IA aplica
 
 ## 🖼️ Demo
 
-<!-- Adicione aqui um GIF ou screenshot da interface funcionando -->
+<img src="images/image.png" alt="Demo da interface" width="800">
 
 - **Interface (Streamlit):** perguntas em PT/EN, upload de novos PDFs, histórico de conversa, fontes citadas por página e arquivo.
 - **API (FastAPI):** endpoints REST documentados via Swagger (`/docs`).
