@@ -5,10 +5,9 @@ status da API, estatísticas da base e perguntas de exemplo.
 
 import streamlit as st
 import requests
-
+import os
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 from src.ui.i18n import get_text
-
-API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(page_title="RAG PDF Q&A", page_icon="📄", layout="centered")
 
