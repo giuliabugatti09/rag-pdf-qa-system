@@ -7,6 +7,8 @@ Projeto desenvolvido como exercício prático de MLOps e engenharia de IA aplica
 ---
 
 ## 🖼️ Demo
+<img src="<img src="C:\Users\Fran\rag-pdf-qa-system\images\Captura de tela 2026-09-12 153147.png" alt="Demo da interface" width="800">
+" alt="Demo da interface" width="800">
 
 
 - **Interface (Streamlit):** perguntas em PT/EN, upload de novos PDFs, histórico de conversa, fontes citadas por página e arquivo.
