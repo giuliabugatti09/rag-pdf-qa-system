@@ -1,74 +1,76 @@
 # 📄 RAG PDF Q&A System
 
-Sistema de busca semântica e Q&A sobre documentos PDF (relatórios financeiros e papers técnicos), construído com RAG (Retrieval-Augmented Generation) de ponta a ponta: ingestão, embeddings, vector database, geração aumentada por contexto, API REST, interface web e avaliação formal de qualidade.
+A semantic search and question-answering system for PDF documents (financial reports and technical papers), built end-to-end with Retrieval-Augmented Generation (RAG): ingestion, embeddings, vector database, context-augmented generation, REST API, web interface, and formal quality evaluation.
 
-Projeto desenvolvido como exercício prático de MLOps e engenharia de IA aplicada — cada decisão técnica abaixo foi validada empiricamente, não copiada de tutorial.
+This project was developed as a hands-on MLOps and applied AI engineering exercise. Every technical decision described below was empirically validated rather than copied from a tutorial.
 
 ---
 
 ## 🖼️ Demo
-<img src="images/demo-interface.png" alt="Demo da interface" width="800">
 
-- **Interface (Streamlit):** perguntas em PT/EN, upload de novos PDFs, histórico de conversa, fontes citadas por página e arquivo.
-- **API (FastAPI):** endpoints REST documentados via Swagger (`/docs`).
+<img src="images/demo-interface.png" width="800">
+
+- **Streamlit Interface:** Ask questions in Portuguese or English, upload new PDFs, view chat history, and see cited sources with page and file references.
+- **FastAPI Backend:** REST endpoints automatically documented through Swagger (`/docs`).
 
 ---
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
-O sistema é dividido em dois pipelines independentes:
+The system is divided into two independent pipelines:
 
 ```mermaid
 flowchart TB
-    subgraph Ingestão["📥 Pipeline de Ingestão (offline)"]
-        A[PDF bruto] --> B[Loader<br/>PyPDFLoader]
+    subgraph Ingestion["📥 Ingestion Pipeline (offline)"]
+        A[Raw PDF] --> B[Loader<br/>PyPDFLoader]
         B --> C[Chunking<br/>RecursiveCharacterTextSplitter]
         C --> D[Embeddings<br/>multilingual-MiniLM]
         D --> E[(ChromaDB<br/>Vector Store)]
     end
 
-    subgraph Consulta["🔎 Pipeline de Consulta (tempo real)"]
-        F[Pergunta do usuário] --> G[Embedding da pergunta]
-        G -.busca por similaridade.-> E
-        E --> H[Retriever<br/>top-k chunks]
-        H --> I[Prompt + Contexto<br/>com citação de fonte]
+    subgraph Retrieval["🔎 Query Pipeline (real time)"]
+        F[User Question] --> G[Question Embedding]
+        G -.similarity search.-> E
+        E --> H[Retriever<br/>top-k Chunks]
+        H --> I[Prompt + Context<br/>with Source Citations]
         I --> J[LLM<br/>Groq / Llama]
-        J --> K[Resposta + Fontes]
+        J --> K[Answer + Sources]
     end
 ```
 
-**Ingestão:** PDF → texto extraído por página → fragmentação em chunks (800 caracteres, overlap de 150) → cada chunk vira um vetor de 384 dimensões → armazenado no ChromaDB com metadados de arquivo-fonte e página.
+**Ingestion:** PDF → page-level text extraction → chunking (800 characters with 150-character overlap) → each chunk is converted into a 384-dimensional vector → stored in ChromaDB together with source file and page metadata.
 
-**Consulta:** pergunta do usuário → mesmo modelo de embedding → busca por similaridade de cosseno no ChromaDB → top-4 chunks mais relevantes → montagem de prompt com instrução anti-alucinação → geração via LLM (Groq) → resposta com citação de fonte.
-
----
-
-## ⚙️ Stack técnico
-
-| Camada | Tecnologia | Por quê |
-|---|---|---|
-| Orquestração RAG | LangChain (LCEL) | Composição declarativa da chain retriever → prompt → LLM |
-| Embeddings | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Validado empiricamente contra corpus bilíngue PT/EN (ver [Decisões Técnicas](#-decisões-técnicas-validadas-com-dados)) |
-| Vector Database | ChromaDB | Embarcado, persistência local, integração nativa com LangChain |
-| LLM | Groq (Llama 3.3 / GPT-OSS) | Inferência rápida, tier gratuito viável para desenvolvimento iterativo |
-| Backend | FastAPI | Validação automática via Pydantic, documentação Swagger gerada |
-| Frontend | Streamlit | Interface bilíngue (i18n próprio, não depende de tradutor de navegador) |
-| Testes | Pytest | Cobertura das partes determinísticas do pipeline |
-| Avaliação | RAGAS | Métricas de faithfulness, relevância e precisão/recall de contexto |
-| Containerização | Docker + Docker Compose | Dois serviços isolados (API + UI) com rede interna |
+**Retrieval:** user question → embedding generated using the same model → cosine similarity search in ChromaDB → retrieve the top-4 most relevant chunks → assemble a prompt with anti-hallucination instructions → generate an answer via Groq → return the answer with source citations.
 
 ---
 
-## 🚀 Como rodar localmente
+## ⚙️ Technical Stack
 
-### Pré-requisitos
+| Layer | Technology | Why |
+|---------|------------|------|
+| RAG Orchestration | LangChain (LCEL) | Declarative composition of the retriever → prompt → LLM chain |
+| Embeddings | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | Empirically validated on a bilingual PT/EN corpus (see #-technical-decisions-validated-with-data) |
+| Vector Database | ChromaDB | Embedded database, local persistence, and native LangChain integration |
+| LLM | Groq (Llama 3.3 / GPT-OSS) | Fast inference and a practical free tier for iterative development |
+| Backend | FastAPI | Automatic validation via Pydantic and generated Swagger documentation |
+| Frontend | Streamlit | Bilingual interface with custom i18n, independent of browser translation |
+| Testing | Pytest | Covers deterministic parts of the pipeline |
+| Evaluation | RAGAS | Faithfulness, relevance, and context precision/recall metrics |
+| Containerization | Docker + Docker Compose | Two isolated services (API + UI) connected through an internal network |
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+
 - Python 3.12+
-- Uma chave de API da [Groq](https://console.groq.com)
+- A Groq API key from https://console.groq.com
 
 ### Setup
 
 ```bash
-git clone https://github.com/<seu-usuario>/rag-pdf-qa-system.git
+git clone https://github.com/<your-username>/rag-pdf-qa-system.git
 cd rag-pdf-qa-system
 
 python -m venv venv
@@ -77,29 +79,36 @@ source venv/bin/activate   # Windows: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Crie um `.env` na raiz:
-```
-GROQ_API_KEY=sua_chave_aqui
+Create a `.env` file at the project root:
+
+```env
+GROQ_API_KEY=your_api_key_here
 ```
 
-Coloque ao menos um PDF em `data/raw/`, depois construa o índice:
+Place at least one PDF inside `data/raw/`, then build the vector index:
+
 ```bash
 python -m src.retrieval.vectorstore
 ```
 
-Suba a API:
+Start the API:
+
 ```bash
 uvicorn src.api.main:app --reload
 ```
 
-Em outro terminal, suba a interface:
+In another terminal, launch the UI:
+
 ```bash
 PYTHONPATH=. streamlit run src/ui/app.py
 ```
 
-Acesse `http://localhost:8501` (interface) e `http://localhost:8000/docs` (API).
+Access:
 
-### Rodando com Docker
+- Interface: `http://localhost:8501`
+- API Docs: `http://localhost:8000/docs`
+
+### Running with Docker
 
 ```bash
 docker compose up --build
@@ -107,79 +116,132 @@ docker compose up --build
 
 ---
 
-## 🧪 Testes
+## 🧪 Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-Cobre: fragmentação de texto (tamanho, overlap, preservação de metadados), formatação de contexto para o prompt, e idempotência do vector store (ver [Bug: duplicação silenciosa](#bug-duplicação-silenciosa-no-vector-store)).
+Coverage includes:
 
-> **Nota de plataforma:** um teste de idempotência é pulado (`skip`) no Windows devido a uma limitação conhecida do ChromaDB/HNSWLib com locks de arquivo `mmap` dentro do mesmo processo — documentado no próprio teste.
+- Text chunking (size, overlap, metadata preservation)
+- Prompt context formatting
+- Vector store idempotency (see #bug-silent-duplication-in-the-vector-store)
+
+> **Platform Note:** One idempotency test is skipped on Windows due to a known ChromaDB/HNSWLib limitation involving `mmap` file locks within the same process. The behavior is documented inside the test case itself.
 
 ---
 
-## 📊 Avaliação de qualidade (RAGAS)
+## 📊 Quality Evaluation (RAGAS)
 
-Avaliação formal com LLM-as-judge sobre 3 perguntas de referência, comparando duas configurações de `k` (número de chunks recuperados):
+Formal evaluation using an LLM-as-a-judge approach on three benchmark questions, comparing two different values of `k` (number of retrieved chunks):
 
-| Métrica | k=4 | k=2 |
-|---|---|---|
+| Metric | k=4 | k=2 |
+|----------|------|------|
 | Faithfulness | 0.67 | 0.79 |
 | Answer Relevancy | 0.88 | 0.70 |
 | Context Precision | 0.58 | 0.50 |
 | Context Recall | **1.00** | 0.33 |
 
-**Decisão:** mantido `k=4` em produção. Apesar do faithfulness levemente inferior, o *context recall* perfeito é mais crítico para um sistema de Q&A financeiro — é preferível uma resposta com pequena imprecisão a uma que não encontra a informação correta. Reduzir `k` para 2 causou queda abrupta de recall (perda de informação necessária em 2 das 3 perguntas testadas).
+**Decision:** `k=4` was retained in production. Although faithfulness was slightly lower, perfect context recall is more critical for a financial Q&A system. It is preferable to generate a response with minor imperfections than to miss the correct information entirely. Reducing `k` from 4 to 2 caused a severe recall drop, losing required information in two out of three benchmark questions.
 
 ---
 
-## 🔍 Decisões técnicas validadas com dados
+## 🔍 Technical Decisions Validated with Data
 
-Este projeto evitou decisões "porque um tutorial disse" sempre que possível:
+This project avoided making decisions simply because "a tutorial recommended it" whenever possible.
 
-- **Embedding multilíngue vs. monolíngue:** testado quantitativamente com similaridade de cosseno entre frases equivalentes em PT/EN. O modelo monolíngue inicial (`all-MiniLM-L6-v2`) apresentou similaridade de **0.08** entre "lucro líquido da empresa" e sua tradução em inglês — pior que frases não relacionadas (0.45). Trocado para modelo multilíngue, que elevou a similaridade correta para **0.56**.
-- **MMR vs. similarity search puro:** testado com `lambda_mult` de 0.5 e 0.8. Em 0.5, o MMR introduziu ruído de baixa relevância (a página de capa do documento apareceu como fonte). Mantido `similarity_search` simples por ser mais previsível para este corpus.
-- **k=4 vs. k=2:** ver seção de avaliação RAGAS acima.
+### Multilingual vs. Monolingual Embeddings
 
----
+Tested quantitatively using cosine similarity between equivalent PT/EN sentence pairs.
 
-## 🐛 Desafios de engenharia (histórico real de debugging)
+The initial monolingual model (`all-MiniLM-L6-v2`) produced a similarity score of **0.08** between "company net income" and its Portuguese equivalent, performing worse than unrelated sentence pairs (**0.45**).
 
-Esta seção documenta problemas genuínos encontrados e resolvidos durante o desenvolvimento — não é uma lista polida de features, é o que realmente aconteceu.
+Replacing it with a multilingual model increased the correct similarity score to **0.56**, making cross-language retrieval viable.
 
-### Bug: duplicação silenciosa no vector store
-`Chroma.from_documents()` **adiciona** a uma coleção existente por padrão, em vez de substituí-la. Rodar o script de ingestão duas vezes duplicava todos os chunks silenciosamente. Corrigido com limpeza explícita do índice antes de reconstruir, e coberto por teste de regressão automatizado.
+### MMR vs. Pure Similarity Search
 
-### Bug: ambiguidade de fonte com múltiplos documentos
-Ao indexar dois PDFs diferentes, ambos tinham uma "página 8" — o sistema citava a fonte só pelo número da página, sem indicar de qual arquivo. Corrigido propagando o nome do arquivo-fonte por toda a cadeia (formatação de contexto → prompt → resposta da API).
+Tested using `lambda_mult` values of 0.5 and 0.8.
 
-### Instabilidade de catálogo de modelos (Groq)
-O modelo `llama-3.3-70b-versatile`, documentado como disponível, retornava 404 para a conta usada no projeto. Diagnosticado consultando a API `/models` diretamente (não confiando em documentação estática) — o catálogo real disponível era diferente do esperado.
+With `lambda_mult=0.5`, MMR introduced low-relevance noise, including the document cover page among retrieved sources.
 
-### Limitação de plataforma: ChromaDB + Windows
-Recriar um vector store dentro do mesmo processo Python, no Windows, pode manter um lock de arquivo indefinidamente (HNSWLib usa `mmap`). Mitigado em produção com retry e tratamento de erro; documentado como skip conhecido nos testes automatizados.
+Standard `similarity_search` was retained because it produced more predictable and relevant results for this corpus.
 
-### Conflitos de dependência: ambiente local vs. Docker
-`pip freeze` local não valida retroativamente a árvore completa de compatibilidade entre pacotes instalados incrementalmente ao longo do projeto. A build Docker (resolução estrita, do zero) revelou conflitos reais (`tenacity`, `websockets`) que o ambiente local vinha tolerando silenciosamente. Resolvido fixando faixas de versão compatíveis, validadas com `pip check`.
+### k=4 vs. k=2
 
-### Deploy gratuito e limite de memória
-O modelo de embedding multilíngue (471MB) inviabiliza o tier gratuito de 512MB do Render junto com PyTorch carregado. Trade-off documentado: produção real usaria uma instância com mais memória ou embeddings via API.
+See the RAGAS evaluation section above.
 
 ---
 
-## 📁 Estrutura do projeto
+## 🐛 Engineering Challenges (Real Debugging History)
 
+This section documents actual issues encountered and resolved during development. It is not a polished feature list; it reflects what genuinely happened during the project.
+
+### Bug: Silent Duplication in the Vector Store
+
+`Chroma.from_documents()` **appends** to an existing collection by default instead of replacing it.
+
+Running the ingestion script twice silently duplicated every chunk.
+
+The issue was fixed by explicitly clearing the index before rebuilding it and by adding a regression test to prevent future occurrences.
+
+### Bug: Source Ambiguity with Multiple Documents
+
+When indexing two PDFs, both contained a "page 8".
+
+The system originally cited only the page number, making it impossible to determine which document was being referenced.
+
+The fix propagated the source filename throughout the entire pipeline (context formatting → prompt → API response).
+
+### Groq Model Catalog Instability
+
+The model `llama-3.3-70b-versatile`, documented as available, returned a 404 error for the account used in this project.
+
+The issue was diagnosed by querying the `/models` endpoint directly instead of relying on static documentation.
+
+The actual model catalog available to the account differed from the documented listing.
+
+### Platform Limitation: ChromaDB + Windows
+
+Recreating a vector store multiple times within the same Python process on Windows can leave file locks indefinitely due to HNSWLib's use of `mmap`.
+
+This was mitigated in production through retries and explicit error handling and documented as a known skipped test.
+
+### Dependency Conflicts: Local Environment vs. Docker
+
+A local Python environment built gradually over time does not guarantee full dependency compatibility.
+
+Docker builds, which resolve dependencies from scratch, exposed actual conflicts involving `tenacity` and `websockets` that had been silently tolerated by the local environment.
+
+The problem was resolved by pinning compatible version ranges and validating the resulting dependency tree with:
+
+```bash
+pip check
 ```
+
+### Free Deployment and Memory Limits
+
+The multilingual embedding model (~471 MB) makes deployment on Render's 512 MB free tier impractical once PyTorch is loaded.
+
+The documented trade-off is that a production deployment would require either:
+
+- A larger instance with more memory
+- Embeddings generated through an external API
+
+---
+
+## 📁 Project Structure
+
+```text
 rag-pdf-qa-system/
 ├── src/
-│   ├── ingestion/       # loader de PDF, chunking
+│   ├── ingestion/       # PDF loading and chunking
 │   ├── retrieval/       # embeddings, vector store, retriever, prompt, chain, LLM
-│   ├── api/             # FastAPI (endpoints /query, /upload, /stats)
-│   ├── ui/              # Streamlit + i18n (PT/EN)
-│   └── evaluation/      # avaliação manual e RAGAS
-├── tests/               # suíte pytest
-├── data/raw/            # PDFs de exemplo
+│   ├── api/             # FastAPI (/query, /upload, /stats)
+│   ├── ui/              # Streamlit + PT/EN i18n
+│   └── evaluation/      # manual evaluation and RAGAS
+├── tests/               # pytest test suite
+├── data/raw/            # sample PDFs
 ├── Dockerfile.api
 ├── Dockerfile.ui
 ├── docker-compose.yml
@@ -188,15 +250,15 @@ rag-pdf-qa-system/
 
 ---
 
-## 🗺️ Próximos passos
+## 🗺️ Future Improvements
 
-- Extração estruturada de tabelas (Camelot/Unstructured) para reduzir perda de estrutura em tabelas financeiras achatadas em texto
-- Cache de resultados para perguntas repetidas
-- Métricas de observabilidade (latência, taxa de "não encontrei", custo por query)
-- Migração do RAGAS para versão não-depreciada (`ragas.metrics.collections`)
+- Structured table extraction (Camelot / Unstructured) to reduce information loss from financial tables flattened into plain text
+- Result caching for repeated questions
+- Observability metrics (latency, "not found" rate, and cost per query)
+- Migration to the non-deprecated RAGAS API (`ragas.metrics.collections`)
 
 ---
 
-## 📜 Licença
+## 📜 License
 
-MIT
+MIT License
