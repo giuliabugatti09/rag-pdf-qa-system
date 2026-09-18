@@ -70,7 +70,7 @@ flowchart TB
 ### Setup
 
 ```bash
-git clone https://github.com/<your-username>/rag-pdf-qa-system.git
+git clone https://github.com/giuliabugatti09/rag-pdf-qa-system.git
 cd rag-pdf-qa-system
 
 python -m venv venv
